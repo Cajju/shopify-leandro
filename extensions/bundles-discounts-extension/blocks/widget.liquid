@@ -1,0 +1,90 @@
+<div id='{{ block.id }}' data-product-id='{{ product.id }}'></div>
+{% comment %} TODO: now need to get the list of all connected products ids from metadata and extradct it {% endcomment %}
+
+
+<script
+  defer
+>
+  // Extract liquid variables to be available in the widget js file
+  window.widgetVariables = {
+    widgetId: '{{ block.id }}',
+    offers: {{ app.metafields.bundles.offers }},
+    moneyFormat: {{ shop.money_format | json }},
+    blockSettings: {{ block.settings | json }},
+    product: {{ product | json }},
+    settings: {{ settings | json }},
+  };
+</script>
+<script src="{{ 'widget.js' | asset_url }}" defer></script>
+
+
+
+{% schema %}
+{
+  "name": "Bundles widget",
+  "target": "section",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Discount settings"
+    },
+    {
+      "type": "checkbox",
+      "id": "hide_save_banner",
+      "label": "Hide save banner",
+      "default": false
+    },
+    {
+      "type": "radio",
+      "id": "price_display",
+      "label": "When price per unit is enabled:",
+      "options": [
+        { "value": "total_as_main_price", "label": "Show total as the main price" },
+        { "value": "price_per_unit", "label": "Show price per unit as the main price" },
+        { "value": "hide_total_price", "label": "Hide the total price" }
+      ],
+      "default": "total_as_main_price"
+    },
+    {
+      "type": "header",
+      "content": "Appearance"
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Background",
+      "default": "#F3F3F3"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text",
+      "default": "#121212"
+    },
+    {
+      "type": "color",
+      "id": "solid_button_background",
+      "label": "Solid button background",
+      "default": "#121212"
+    },
+    {
+      "type": "color",
+      "id": "solid_button_label",
+      "label": "Solid button label",
+      "default": "#F3F3F3"
+    },
+    {
+      "type": "color",
+      "id": "outline_button",
+      "label": "Outline button",
+      "default": "#121212"
+    },
+    {
+      "type": "color",
+      "id": "shadow",
+      "label": "Shadow",
+      "default": "#121212"
+    }
+  ]
+}
+{% endschema %}

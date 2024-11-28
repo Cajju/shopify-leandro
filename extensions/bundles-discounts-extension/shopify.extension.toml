@@ -1,0 +1,28 @@
+name = "bundles-discounts-extension"
+type = "theme"
+
+
+# Add this section for theme app extension targeting
+[[extensions]]
+type = "theme"
+name = "Bundles discounts widget"
+handle = "bundles-discounts-extension"
+
+# Theme app extension specific configuration
+[[extensions.targeting]]
+module = "@shopify/theme-extensions"
+target = "theme"
+
+[[extensions.targeting]]
+target = "web"
+[[extensions.targeting.rules]]
+type = "file"
+matching = "bundles-discounts-extension/blocks/widget.liquid"
+
+
+[[extensions.metafields]]
+namespace = "bundles-discounts-extension"
+key = "data"
+
+[extensions.capabilities]
+network_access = true

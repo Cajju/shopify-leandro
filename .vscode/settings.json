@@ -1,0 +1,37 @@
+{
+  "i18n-ally.localesPaths": ["web/frontend/locales"],
+  "i18n-ally.enabledFrameworks": ["i18next-shopify"],
+  "i18n-ally.keystyle": "nested",
+  "workbench.editor.labelFormat": "short",
+  "scss.lint.unknownAtRules": "ignore",
+  "editor.formatOnSave": true,
+  "prettier.printWidth": 100,
+  "prettier.singleQuote": true,
+  "prettier.trailingComma": "none",
+  "prettier.eslintIntegration": true,
+  "editor.tabSize": 2,
+  "[liquid]": {
+    "editor.defaultFormatter": "sissel.shopify-liquid",
+    "editor.formatOnSave": true
+  },
+  "workbench.colorCustomizations": {
+    "activityBar.activeBackground": "#259dfe",
+    "activityBar.background": "#259dfe",
+    "activityBar.foreground": "#15202b",
+    "activityBar.inactiveForeground": "#15202b99",
+    "activityBarBadge.background": "#be016a",
+    "activityBarBadge.foreground": "#e7e7e7",
+    "commandCenter.border": "#e7e7e799",
+    "sash.hoverBorder": "#259dfe",
+    "statusBar.background": "#0185ef",
+    "statusBar.foreground": "#e7e7e7",
+    "statusBarItem.hoverBackground": "#259dfe",
+    "statusBarItem.remoteBackground": "#0185ef",
+    "statusBarItem.remoteForeground": "#e7e7e7",
+    "titleBar.activeBackground": "#0185ef",
+    "titleBar.activeForeground": "#e7e7e7",
+    "titleBar.inactiveBackground": "#0185ef99",
+    "titleBar.inactiveForeground": "#e7e7e799"
+  },
+  "peacock.color": "#0185ef"
+}

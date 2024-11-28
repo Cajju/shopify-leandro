@@ -1,0 +1,25 @@
+{
+  "name": "bundles-app",
+  "version": "1.0.0",
+  "main": "web/index.js",
+  "license": "UNLICENSED",
+  "scripts": {
+    "shopify": "shopify",
+    "build": "shopify app build --config shopify.app.production.toml && cd web/widget && npm run build:widget",
+    "dev": "concurrently \"npm run build-widget-watch\" \"shopify app dev --config shopify.app.dev.toml\"",
+    "build-widget-watch": "cd web/widget && npm run build:widget-watch",
+    "info": "shopify app info",
+    "generate": "shopify app generate",
+    "deploy": "shopify app deploy --config shopify.app.production.toml"
+  },
+  "author": "oribenez",
+  "private": true,
+  "workspaces": [
+    "extensions/*",
+    "web",
+    "web/frontend"
+  ],
+  "devDependencies": {
+    "concurrently": "^9.0.1"
+  }
+}
