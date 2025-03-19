@@ -8,11 +8,17 @@ const useBundles = (status = 'all') => {
     queryKey: [QUERY_KEYS.bundles, ...(status === 'all' ? [] : [status])],
     queryFn: async () => {
       const response = await api.get(`/bundles`, { params: { status } })
-      return response.data?.bundles || []
+      const data = response.data?.bundles || []
+      return data
     },
     meta: {
       errorMessage: "couldn't load bundles"
-    }
+    },
+    experimental_prefetchInRender: true,
+    refetchOnWindowFocus: true,
+    staleTime: 0, // Always consider data stale
+    refetchOnMount: true, // Refetch when component mounts
+    refetchInterval: false // Don't automatically refetch at intervals
   })
 }
 

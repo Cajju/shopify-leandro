@@ -1,10 +1,23 @@
-import envVars from '../utils/config.js'
-import { Settings, Shop, ShopInstall, Statistics } from '../models/index.js'
-import { reportEvent } from '../utils/amplitude.js'
-import shopify from '../utils/shopify/index.js'
+import { Settings, Shop, ShopInstall, Statistics } from '../../shared/models/index.js'
+import { reportEvent } from '../../shared/utils/report-events/index.js'
+import shopify from '../../shared/utils/shopify/index.js'
+import { setAppDataMetafield } from '../../shared/utils/shopify/services/metafield-service.js'
+import { executeGraphQLQuery, handleGraphQLResponse } from '../../shared/utils/lib.js'
+import { constants } from '../../shared/utils/report-events/constants.js'
+import PostmarkEmailService from '../../shared/utils/sendEmailPostmarkapp.js'
+import TelegramNotifier from '../../shared/utils/telegram-notifications.js'
+import sharedConfig from '../../shared/utils/config.js'
+
+const SHOP_QUERY = `
+query {
+  shop {
+    id
+  }
+}
+`
 
 export default async function onAppInstallHandler(req, res, next) {
-  const session = res.locals.shopify.session
+  const session = req.session
   const shopOrigin = session.shop
   const accessToken = session.accessToken
   try {
@@ -16,8 +29,11 @@ export default async function onAppInstallHandler(req, res, next) {
       { shopify_domain: shopOrigin },
       { upsert: true }
     )
+
     if (shop) return next()
 
+    const shopData = await executeGraphQLQuery(session, SHOP_QUERY, { errorMessage: 'Failed to query shop' })
+    const shopId_shopify = shopData.shop.id // the shopId in shopify
     const shopInformation = (await shopify.api.rest.Shop.all({ session })).data[0]
 
     const shopId = (await Shop.findOne({ shopify_domain: shopOrigin }, { _id: 1 }))?._id
@@ -33,28 +49,74 @@ export default async function onAppInstallHandler(req, res, next) {
     shop.isNew = false
     shop.save()
 
-    await new Settings({
-      shopId: shopId,
+    // set settings
+    const settings = await new Settings({
+      shopId,
       shopify_domain: shopOrigin
     }).save()
 
+    const appBlockMetafield = {
+      type: 'json',
+      namespace: 'bundles',
+      key: 'settings',
+      value: JSON.stringify(settings)
+    }
+    await setAppDataMetafield(req.session, appBlockMetafield)
+
     await new Statistics({
-      shopId: shopId
+      shopId
     }).save()
 
     let shopInstall = await ShopInstall.findOne({ shopify_domain: shopOrigin })
     if (!shopInstall) {
-      await ShopInstall.create({ shopify_domain: shopOrigin })
+      await ShopInstall.create({
+        shopify_domain: shopOrigin,
+        shopOwnerName: shopInformation.shop_owner,
+        shopOwnerEmail: shopInformation.email
+      })
     }
 
-    reportEvent(shopOrigin, 'install', shopInformation.plan_name, {
-      userProps: { ...shopInformation }
+    res.track({
+      eventName: constants.event.app.APP_INSTALLED,
+      shopifyPlan: shopInformation.plan_name,
+      shopInformation
     })
+
+    const appAdminDashboardHandle = 'boxhead-bundles'
+    const appAdminDashboardUrl = `https://admin.shopify.com/store/${shopOrigin.replace(
+      '.myshopify.com',
+      ''
+    )}/apps/${appAdminDashboardHandle}`
+
+    const postmarkEmailService = new PostmarkEmailService(sharedConfig.postmark)
+    await postmarkEmailService.sendEmailWithTemplate({
+      To: shopInformation.email,
+      TemplateAlias: 'boxhead-bundles--app-install',
+      TemplateModel: {
+        userName: shopInformation.shop_owner,
+        dashboardUrl: appAdminDashboardUrl
+      }
+    })
+    const telegramNotifier = new TelegramNotifier({
+      env: sharedConfig.env,
+      telegram: sharedConfig.telegram
+    })
+    await telegramNotifier.sendNotification({
+      severity: 'info',
+      title: 'App Install',
+      shop: req.session.shop,
+      event: constants.event.app.APP_INSTALLED
+    })
+    console.log('App install', req.session.shop)
 
     next()
   } catch (e) {
     console.log(e)
     console.log('App installation failed')
-    reportEvent(shopOrigin, 'App installation failed')
+
+    res.track({
+      eventName: constants.event.app.SERVER_ERROR,
+      resource: constants.event.app.APP_INSTALLED
+    })
   }
 }

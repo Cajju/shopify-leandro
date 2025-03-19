@@ -1,21 +1,22 @@
-import { Settings, Shop, ShopInstall } from '../models/index.js'
-import envVars from '../utils/config.js'
-const { apiVersion, host, isProd } = envVars
-import { reportEvent } from '../utils/amplitude.js'
+import { Settings, Shop, ShopInstall } from '../../shared/models/index.js'
+import shopifyConfig from '../../shared/utils/shopify/config.js'
+import sharedConfig from '../../shared/utils/config.js'
+import { reportEvent } from '../../shared/utils/report-events/index.js'
 import {
-  BillingInterval,
-  currencyCode,
   getPlan,
   hasActivePayment,
   requestPayment,
   cancelSubscription,
   calculateRemainDays
-} from '../utils/shopify/ensure-billing.js'
-import { sendPushNotification } from '../utils/push-notification.js'
-import HttpError from '../utils/http-error.js'
-import shopify from '../utils/shopify/index.js'
-import { GraphqlQueryError } from '@shopify/shopify-api'
-import { fetchProducts } from '../services/product-service.js'
+} from '../../shared/utils/shopify/ensure-billing.js'
+import { sendPushNotification } from '../../shared/push-notification.js'
+import HttpError from '../../shared/utils/http-error.js'
+import shopify from '../../shared/utils/shopify/index.js'
+import { fetchProducts, fetchProductsVariantsByIds } from '../../shared/utils/shopify/services/product-service.js'
+import { checkThemeSupport, getThemeAppSettingsService } from '../../shared/utils/shopify/services/theme-service.js'
+import { constants } from '../../shared/utils/report-events/constants.js'
+
+const { BillingInterval, currencyCode } = shopifyConfig
 
 export async function getShop(req, res, next) {
   const shopOrigin = req.session.shop
@@ -35,8 +36,8 @@ export async function getShop(req, res, next) {
     }
 
     if (!shop) {
-      reportEvent(shopOrigin, 'error', {
-        value: 'could not fetch shop details'
+      reportEvent(shopOrigin, constants.event.app.SERVER_ERROR, {
+        message: 'could not fetch shop details'
       })
       return next(new HttpError('Shop not found', 404))
     }
@@ -64,88 +65,33 @@ export const getProducts = async (req, res, next) => {
     next(e)
   }
 }
-
-export async function toggleShop(req, res, next) {
-  const shopOrigin = req?.session?.shop
-  if (!shopOrigin) {
-    return next(new HttpError('No shop Origin', 403))
-  }
-
+export const getProductsVariantsByIds = async (req, res, next) => {
   try {
-    const toggleShop = req.body?.toggle
-
-    const shop = await Shop.findOne({ shopify_domain: shopOrigin })
-    if (!shop) {
-      reportEvent(shopOrigin, 'Shop not found', {
-        value: 'could not fetch shop details'
-      })
-      return next(new HttpError('Shop not found', 404))
-    }
-
-    if (toggleShop) {
-      // Enable shop
-      const options = {
-        method: 'POST',
-        body: JSON.stringify({
-          script_tag: {
-            event: 'onload',
-            src: `${host}api/widget/script?app=notify-mate`
-          }
-        }),
-        credentials: 'include',
-        headers: {
-          'X-Shopify-Access-Token': shop.accessToken,
-          'Content-Type': 'application/json'
-        }
-      }
-      const response = await fetch(`https://${shopOrigin}/admin/api/${apiVersion}/script_tags.json`, options)
-      const data = await response.json()
-    } else {
-      // Disable shop
-      // get all script tags
-      let response = await fetch(`https://${shopOrigin}/admin/api/${apiVersion}/script_tags.json`, {
-        credentials: 'include',
-        headers: {
-          'X-Shopify-Access-Token': shop.accessToken,
-          'Content-Type': 'application/json'
-        }
-      })
-      let script_tags = (await response.json())?.script_tags
-      if (script_tags && Array.isArray(script_tags)) {
-        script_tags = script_tags.filter((item) => item.src.indexOf('app=notify-mate') > -1)
-
-        for (const script of script_tags) {
-          response = await fetch(`https://${shopOrigin}/admin/api/${apiVersion}/script_tags/${script.id}.json`, {
-            method: 'DELETE',
-            credentials: 'include',
-            headers: {
-              'X-Shopify-Access-Token': shop.accessToken,
-              'Content-Type': 'application/json'
-            }
-          })
-          const data = await response.json()
-        }
-      } else {
-        const script = script_tags.script_tag
-        response = await fetch(`https://${shopOrigin}/admin/api/${apiVersion}/script_tags/${script.id}.json`, {
-          method: 'DELETE',
-          credentials: 'include',
-          headers: {
-            'X-Shopify-Access-Token': shop.accessToken,
-            'Content-Type': 'application/json'
-          }
-        })
-        const data = await response.json()
-      }
-    }
-
-    await Shop.updateOne({ shopify_domain: shopOrigin }, { isActive: toggleShop })
-
-    res.status(201).json({ success: true })
+    const { products } = req.body.data
+    const result = await fetchProductsVariantsByIds(req.session, products)
+    res.status(200).json(result)
   } catch (e) {
-    console.log(e)
-    return next(new HttpError(`Failed to process toggleShop: ${e.message}. Shop: ${shopOrigin}`, 500))
+    next(e)
   }
+}
+
+export async function getThemeSupport(req, res, next) {
+  try {
+    const result = await checkThemeSupport(req.session)
+
+    const themeSupportWithEnvVars = {
+      ...result,
+      shopifyBundlesDiscountsExtensionId: sharedConfig.shopifyBundlesDiscountsExtensionId
+    }
+    res.status(200).json(themeSupportWithEnvVars)
+  } catch (e) {
+    next(e)
+  }
+}
+
+export async function getThemeAppSettings(req, res, next) {
+  const result = await getThemeAppSettingsService(req.session)
+  res.status(200).json(result)
 }
 
 export async function changePlan(req, res, next) {
@@ -160,8 +106,8 @@ export async function changePlan(req, res, next) {
       shopify_domain: shopOrigin
     })
     if (!shop) {
-      reportEvent(shopOrigin, 'error', {
-        value: 'could not fetch shop details'
+      reportEvent(shopOrigin, constants.event.app.SERVER_ERROR, {
+        message: 'could not fetch shop details'
       })
       return next(new HttpError('Shop not found', 404))
     }
@@ -258,12 +204,12 @@ export async function ensurePayment(req, res, next) {
 
       //send push notification
       const plan = getPlan(chargeName)
-      if (isProd) {
+      if (sharedConfig.env !== 'dev') {
         const title = '[Mate] App install'
         const message = `Plan: ${chargeName}, $${plan.price}`
         const link = `https://${shopOrigin}`
         await sendPushNotification(title, message, link)
-        reportEvent(shopOrigin, `Change plan: ${chargeName}`, {
+        reportEvent(shopOrigin, constants.event.plans.CHANGE_PRICING_PLAN, {
           plan: chargeName
         })
       }
@@ -277,7 +223,9 @@ export async function ensurePayment(req, res, next) {
     } else {
       const message = `[ensurePayment] Payment is not confirmed. Shop: ${shopOrigin}`
       console.log(message)
-      reportEvent(shopOrigin, 'plans-payment_not_confirmed')
+      reportEvent(shopOrigin, constants.event.plans.PAYMENT_NOT_CONFIRMED, {
+        message
+      })
       res.status(201).json({ message })
     }
   } catch (e) {

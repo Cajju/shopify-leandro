@@ -1,12 +1,12 @@
 import { Router } from 'express'
-import bundlesApi from './bundles-routes.js'
 import shopRoutes from './shop-routes.js'
 import utilsRoutes from './utils-routes.js'
+import settingsRoutes from './settings-routes.js'
 
 const router = Router()
 
-router.use('/bundles', bundlesApi)
 router.use(`/utils`, utilsRoutes)
 router.use(`/shop`, shopRoutes)
+router.use(`/settings`, settingsRoutes)
 
 export default router

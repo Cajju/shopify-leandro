@@ -1,7 +1,7 @@
 # Environment Configuration
 .env
 .env.*
-!.env.example
+!.env.*sample
 
 # Dependency directory
 node_modules
@@ -24,6 +24,7 @@ dist/
 
 # extensions build output
 extensions/*/build
+extensions/bundles-discounts-extension/assets/*-generated.*
 
 # Node library SQLite database
 web/database.sqlite
@@ -31,3 +32,6 @@ web/database.sqlite
 # Ignore shopify files created during app dev
 .shopify/*
 .shopify.lock
+
+shopify.app.dev-*.toml
+!shopify.app.dev-sample.toml

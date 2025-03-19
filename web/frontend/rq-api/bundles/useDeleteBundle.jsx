@@ -8,11 +8,13 @@ export default function useDeleteBundle() {
   const { toast } = useAppBridge()
 
   return useMutation({
+    mutationKey: [QUERY_KEYS.bundles, 'delete'],
     mutationFn: async ({ bundleId }) => await api.delete(`/bundles/${bundleId}`),
-    onSuccess: ({ bundles }, { bundleId }) => {
+    onSuccess: ({ bundles }, { bundleId, onSuccess }) => {
       queryClient.setQueryData([QUERY_KEYS.bundles], (old) => old.filter((b) => b._id !== bundleId))
       queryClient.setQueryData([QUERY_KEYS.bundles, bundleId], null)
-      toast.show('Bundle deleted')
+
+      onSuccess?.()
     }
   })
 }

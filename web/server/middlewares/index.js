@@ -1,3 +1,6 @@
 export { default as onAppInstallHandler } from './appInstall.js'
 export { default as errorHandler } from './errorHandler.js'
 export { default as logger } from './logger.js'
+export { default as trackEndpoint } from './trackEndpoint.js'
+export { default as initializeShutdownHandler } from './serverShutdownHandler.js'
+export { default as secretlabAuthMiddleware } from './secretlabAuth.js'

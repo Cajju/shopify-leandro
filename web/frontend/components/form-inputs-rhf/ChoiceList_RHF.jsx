@@ -1,6 +1,15 @@
 import { ChoiceList } from '@shopify/polaris'
 import { Controller } from 'react-hook-form'
 
+/**
+ * @type {React.FC<{
+ *   control: Control,
+ *   name: string,
+ *   defaultValue?: string,
+ *   shouldUnregister?: boolean,
+ *   ...params: React.ComponentProps<typeof ChoiceList>
+ * }>}
+ */
 const ChoiceList_RHF = ({ control, name, defaultValue = '', shouldUnregister = false, ...params }) => {
   return (
     <>
@@ -9,9 +18,9 @@ const ChoiceList_RHF = ({ control, name, defaultValue = '', shouldUnregister = f
         render={({ field: { value, onChange, onBlur }, fieldState }) => (
           <ChoiceList
             error={fieldState.error?.message}
-            onChange={onChange} // send value to hook form
+            onChange={(value) => onChange(value[0])} // send value to hook form
             onBlur={onBlur} // notify when input is touched/blur
-            selected={typeof value === 'string' ? [value] : value}
+            selected={[value]}
             {...params}
           />
         )}

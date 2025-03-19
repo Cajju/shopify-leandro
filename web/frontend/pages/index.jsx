@@ -1,43 +1,51 @@
-import { EmptyState, Page } from '@shopify/polaris'
-import { EmptyState2Img } from '@assets'
+import { useEventTracking } from '@hooks/useEventTracking'
+import { Page, Layout, Card, EmptyState } from '@shopify/polaris'
+import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import useBundles from '@rq-api/bundles/useBundles'
 
-import BundlesTable from '@components/bundles/BundlesTable/BundlesTable'
-import ErrorBanner from '@components/ErrorBanner'
-import ManageBundlesSkeleton from '@components/Bundles/BundlesTable/ManageBundlesSkeleton'
+import PageBanners from '@components/layout/PageBanners'
 
 export default function ManageBundlesPage() {
   const navigate = useNavigate()
+  const { trackEvent, constants } = useEventTracking()
 
-  const { data: bundles, isLoading: isLoadingBundles, isSuccess: isSuccessBundles, error: bundlesError } = useBundles()
-
-  if (isLoadingBundles) return <ManageBundlesSkeleton />
-  if (bundlesError) return <ErrorBanner message={bundlesError?.message} />
-
-  if (isSuccessBundles && bundles.length === 0) {
-    return (
-      <EmptyState
-        image={EmptyState2Img}
-        heading="No bundles yet"
-        action={{
-          content: 'Create a bundle',
-          onAction: () => navigate('bundles/new')
-        }}>
-        <p>Click below to create your first bundle</p>
-      </EmptyState>
-    )
-  }
+  // Track page load when data is successfully loaded
+  useEffect(() => {
+    trackEvent({
+      event: constants.event.page.LOADED,
+      properties: {},
+      resource: 'dashboard'
+    })
+  }, [trackEvent, constants])
 
   return (
-    <Page
-      title="Bundles"
-      subtitle="Create and manage your bundles."
-      primaryAction={{
-        content: 'Create a Bundle',
-        onAction: () => navigate('bundles/new')
-      }}>
-      <BundlesTable />
-    </Page>
+    <>
+      <Page>
+        <PageBanners />
+      </Page>
+      <Page
+        title="Dashboard"
+        subtitle="Create and manage your bundles."
+        primaryAction={{
+          content: 'Create a Bundle',
+          onAction: () => navigate('/bundles/new')
+        }}>
+        <Layout>
+          <Layout.Section>
+            <Card>
+              <EmptyState
+                heading="Create your first bundle"
+                action={{
+                  content: 'Create Bundle',
+                  onAction: () => navigate('/bundles/new')
+                }}
+                image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png">
+                <p>Start creating product bundles to offer deals to your customers.</p>
+              </EmptyState>
+            </Card>
+          </Layout.Section>
+        </Layout>
+      </Page>
+    </>
   )
 }

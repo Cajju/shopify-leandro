@@ -1,4 +1,7 @@
 export { default as Checkbox } from './Checkbox_RHF'
 export { default as ChoiceList } from './ChoiceList_RHF'
-export { default as TextField } from './TextField_RHF'
 export { default as Select } from './Select_RHF'
+export { default as ColorPicker } from './ColorPicker_RHF'
+export { default as FormErrorBanner } from './FormErrorBanner'
+export { default as Combobox } from './Combobox_RHF'
+export { default as TextField } from './TextField_RHF'

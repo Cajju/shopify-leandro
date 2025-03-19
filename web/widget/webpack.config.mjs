@@ -3,6 +3,7 @@ import webpack from 'webpack'
 import { CleanWebpackPlugin } from 'clean-webpack-plugin'
 import TerserPlugin from 'terser-webpack-plugin'
 import { fileURLToPath } from 'url'
+import CopyWebpackPlugin from 'copy-webpack-plugin'
 
 function HACK_removeMinimizeOptionFromCssLoaders(config) {
   console.warn('HACK: Removing `minimize` option from `css-loader` entries in Webpack config')
@@ -23,15 +24,22 @@ const env = {
 }
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
-// const isDevelopment = process.env.NODE_ENV === 'development';
+const isDevelopment = process.env.NODE_ENV === 'development'
 
 export default {
-  mode: 'production',
-  entry: './index.jsx',
+  mode: isDevelopment ? 'development' : 'production',
+  entry: {
+    subWidget: './sub-widget/index.jsx'
+  },
   output: {
-    filename: 'widget.js',
+    filename: (pathData) => {
+      if (pathData.chunk.name === 'subWidget') {
+        return 'sub-widget--generated.js'
+      }
+      return null
+    },
     library: 'widget',
-    path: path.resolve(__dirname, '../../extensions/bundles-discounts-extension/assets')
+    path: path.resolve(__dirname, '../../extensions/theme-app-extension/assets')
   },
   module: {
     rules: [
@@ -44,6 +52,19 @@ export default {
             presets: [
               ['@babel/preset-env', { targets: '> 0.25%, not dead' }],
               ['@babel/preset-react', { runtime: 'automatic', importSource: 'preact' }]
+            ],
+            plugins: [
+              [
+                'babel-plugin-styled-components',
+                {
+                  displayName: true,
+                  fileName: false,
+                  meaninglessFileNames: ['index', 'styles'],
+                  minify: !isDevelopment,
+                  pure: true,
+                  transpileTemplateLiterals: true
+                }
+              ]
             ]
           }
         }
@@ -64,11 +85,20 @@ export default {
         ]
       },
       {
-        test: /\.svg$/,
-        exclude: /node_modules/,
-        use: {
-          loader: 'svg-react-loader'
-        }
+        test: /\.(png|jpe?g|gif|svg)$/i,
+        oneOf: [
+          {
+            test: /\.svg$/i,
+            resourceQuery: /react/, // handle .svg?react
+            use: ['@svgr/webpack']
+          },
+          {
+            type: 'asset/resource',
+            generator: {
+              filename: '[name][ext]'
+            }
+          }
+        ]
       }
     ]
   },
@@ -83,13 +113,22 @@ export default {
   },
   plugins: [
     new CleanWebpackPlugin(),
+    new CopyWebpackPlugin({
+      patterns: [
+        {
+          from: './shared/utils/themeConfig.json',
+          to: 'themeConfig--auto-generated.json'
+        }
+      ]
+    }),
     new webpack.DefinePlugin({
       'process.env.NODE_ENV': JSON.stringify('production')
     })
   ],
   optimization: {
-    minimizer: [new TerserPlugin()],
+    minimizer: isDevelopment ? [] : [new TerserPlugin()],
     usedExports: true,
-    sideEffects: true
+    sideEffects: true,
+    minimize: !isDevelopment
   }
 }

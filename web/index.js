@@ -1,19 +1,27 @@
-// @ts-check
-import { join } from 'path'
-import { readFileSync } from 'fs'
-import express from 'express'
-import serveStatic from 'serve-static'
-import 'express-async-errors'
-import cors from 'cors'
 import cookieParser from 'cookie-parser'
-import shopify from './server/utils/shopify/index.js'
-import shopifyWebhooksHandlers from './server/utils/shopify/shopify-webhooks.js'
-import apiRoutes from './server/routes/index.js'
-import initMongoDB from './server/utils/mongo.js'
-import { initAmplitude } from './server/utils/amplitude.js'
-import { onAppInstallHandler, errorHandler, logger } from './server/middlewares/index.js'
-import HttpError from './server/utils/http-error.js'
+import cors from 'cors'
+import express from 'express'
+import 'express-async-errors'
+import { readFileSync } from 'fs'
+import { join } from 'path'
+import serveStatic from 'serve-static'
+import adminControl from './server/middlewares/adminControl.js'
+import {
+  errorHandler,
+  initializeShutdownHandler,
+  logger,
+  onAppInstallHandler,
+  trackEndpoint
+} from './server/middlewares/index.js'
 import validateAppProxyRequest from './server/middlewares/validateAppProxyRequest.js'
+import apiRoutes from './server/routes/index.js'
+import secretlabRoutes from './server/routes/secretlab-routes.js'
+import widgetProxyRoutes from './server/routes/widget-proxy-routes.js'
+import HttpError from './shared/utils/http-error.js'
+import initMongoDB from './shared/utils/mongo.js'
+import { initEventTracking } from './shared/utils/report-events/index.js'
+import shopify from './shared/utils/shopify/index.js'
+import shopifyWebhooksHandlers from './shared/utils/shopify/shopify-webhooks.js'
 
 const PORT = parseInt(process.env.BACKEND_PORT || process.env.PORT || '3000', 10)
 
@@ -22,8 +30,8 @@ const STATIC_PATH =
 
 const app = express()
 
-initAmplitude()
-initMongoDB()
+initEventTracking()
+await initMongoDB()
 
 app.use(logger)
 app.use(cookieParser())
@@ -33,6 +41,12 @@ app.get('/robots.txt', function (req, res) {
   res.type('text/plain')
   res.send('User-agent: *\nDisallow: /')
 })
+
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'healthy' })
+})
+
+app.use('/secretlab', secretlabRoutes)
 
 // Set up Shopify authentication and webhook handling
 app.get(shopify.config.auth.path, shopify.auth.begin())
@@ -44,48 +58,38 @@ app.post(shopify.config.webhooks.path, shopify.processWebhooks({ webhookHandlers
 app.use(express.json())
 app.use(cors())
 
-app.get('/api/widget-proxy', validateAppProxyRequest, async (req, res) => {
-  try {
-    // @ts-ignore
-    console.log('Received query parameters:', req.session)
-    const { product_id } = req.query
-
-    console.log('Product ID:', product_id)
-    // Here, implement your logic to calculate volume discounts for the given product
-    // This is just a placeholder response
-    const discountData = {
-      message: 'Volume discount available!',
-      discounts: [
-        { description: 'Buy 2', amount: '10% off' },
-        { description: 'Buy 3', amount: '15% off' }
-      ]
-    }
-
-    res.json(discountData)
-  } catch (error) {
-    console.error('Error handling /api/volume-discount request:', error)
-    res.status(500).send('Internal Server Error')
-  }
-})
+app.use('/api/widget-proxy', validateAppProxyRequest, widgetProxyRoutes)
 
 // 👇 All endpoints after this point will require an active session
-app.use('/api/*', shopify.validateAuthenticatedSession(), (req, res, next) => {
-  // saving the session for more comfortable access
-  // @ts-ignore
-  req.session = res.locals.shopify.session
-  // @ts-ignore
-  const shopOrigin = req.session?.shop
-  if (!shopOrigin) {
-    return next(new HttpError('No shop Origin', 403))
-  }
-  next()
-})
+app.use(
+  '/api/*',
+  shopify.validateAuthenticatedSession(),
+  (req, res, next) => {
+    // saving the session for more comfortable access
+    // @ts-ignore
+    req.session = res.locals.shopify.session
+    // @ts-ignore
+    const shopOrigin = req.session?.shop
+    if (!shopOrigin) {
+      return next(new HttpError('No shop Origin', 403))
+    }
+    next()
+  },
+  adminControl
+)
 
+app.use(trackEndpoint)
 app.use('/api/*', onAppInstallHandler)
-app.use(`/api/admin`, apiRoutes)
+app.use('/api/admin', apiRoutes)
 
 app.use(shopify.cspHeaders())
 app.use(serveStatic(STATIC_PATH, { index: false }))
+
+// Add cache middleware for assets
+app.use('/assets/*', (req, res, next) => {
+  res.setHeader('Cache-Control', 'public, max-age=3600000')
+  next()
+})
 
 app.use('/*', shopify.ensureInstalledOnShop(), async (_req, res, _next) => {
   res
@@ -100,4 +104,16 @@ app.use('/*', shopify.ensureInstalledOnShop(), async (_req, res, _next) => {
 
 app.use(errorHandler)
 
-app.listen(PORT)
+// Replace the simple server start with a robust server management function
+const startServer = () => {
+  const server = app.listen(PORT, () => {
+    console.log(`\n🚀 Server running on port ${PORT}`)
+  })
+
+  initializeShutdownHandler(server, startServer)
+
+  return server
+}
+
+// Start the server initially
+startServer()

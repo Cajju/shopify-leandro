@@ -9,6 +9,8 @@ const useChangeBundleStatus = () => {
   const { toast } = useAppBridge()
 
   return useMutation({
+    mutationKey: [QUERY_KEYS.bundles, 'change-status'],
+    gcTime: 0,
     mutationFn: async ({ bundleId, newStatus }) => {
       const response = await api.post(`/bundles/change-status`, {}, { params: { bundleId, newStatus } })
       return response.data
@@ -16,7 +18,7 @@ const useChangeBundleStatus = () => {
     onSuccess: ({ bundles, bundle }, { newStatus, onSuccess }) => {
       queryClient.setQueryData([QUERY_KEYS.bundles], bundles)
       queryClient.setQueryData([QUERY_KEYS.bundles, bundle._id], bundle)
-      toast.show(`Bundle ${newStatus === STATUS_TYPES.ACTIVE ? 'activated' : 'deactivated'}`)
+      toast.show(`Bundle ${newStatus === STATUS_TYPES.ACTIVE ? 'activated' : 'set as draft'}`)
       onSuccess?.()
     }
   })

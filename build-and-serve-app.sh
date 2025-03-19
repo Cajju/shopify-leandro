@@ -1,16 +1,12 @@
-#!/bin/bash
-echo "App Build And Serve Script Starting..."
-echo "Frontend building..."
-pwd
+#!/bin/sh
+echo "Building frontend..."
 cd /app/web/frontend
-pwd
-ls -lthra
 npm run build
-echo "Frontend Build Complete."
-echo "Backend Preparing to Serve Requests..."
+
+echo "Building widget..."
+cd /app/web/widget
+npm run build:widget
+
+echo "Starting application server..."
 cd /app/web
-pwd
-ls -lthra
 npm run serve
-echo "Backend Now Serving Requests."
-echo "App Build And Serve Script Complete."

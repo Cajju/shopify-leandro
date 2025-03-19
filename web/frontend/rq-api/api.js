@@ -6,16 +6,23 @@ const defaultHeaders = {
 }
 
 async function fetchWithErrorHandling(url, options = {}) {
+  const shopDomainToControl = localStorage.getItem('shopDomainToControl')
+
+  const headers = {
+    ...defaultHeaders,
+    ...(options.headers || {}),
+    ...(shopDomainToControl && {
+      'admin-control-shop': shopDomainToControl
+    })
+  }
+
   const config = {
     ...options,
-    headers: {
-      ...defaultHeaders,
-      ...(options.headers || {}) // Ensure options.headers is an object
-    }
+    headers
   }
 
   // Handle timeout
-  const { timeout = 8000 } = config
+  const { timeout = 30000 } = config
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), timeout)
   config.signal = controller.signal
@@ -51,7 +58,8 @@ async function fetchWithErrorHandling(url, options = {}) {
 }
 
 function buildUrlWithParams(baseURL, url, params) {
-  const urlObj = new URL(`${baseURL}/${url}`, window.location.origin)
+  const cleanUrl = url.startsWith('/') ? url.slice(1) : url
+  const urlObj = new URL(`${baseURL}/${cleanUrl}`, window.location.origin)
   Object.keys(params).forEach((key) => urlObj.searchParams.append(key, params[key]))
   return urlObj.toString()
 }

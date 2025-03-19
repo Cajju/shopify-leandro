@@ -1,17 +1,19 @@
 import React, { useEffect } from 'react'
 
-export const CrispChat = ({ CRISP_WEBSITE_ID, sessionData }) => {
+export const CrispChat = ({ CRISP_WEBSITE_ID, sessionData, APP_NAME_HANDLE }) => {
   useEffect(() => {
     window.setTimeout(runCrisp, 1)
     function runCrisp() {
       window.$crisp = []
       $crisp.push(['set', 'user:email', [sessionData.email]])
       $crisp.push(['set', 'user:nickname', [sessionData.name]])
+      $crisp.push(['set', 'session:segments', [[APP_NAME_HANDLE]]])
       $crisp.push([
         'set',
         'session:data',
         [
           [
+            ['app_name', APP_NAME_HANDLE],
             ['pricing_plan', sessionData.pricingPlan],
             ['store_url', sessionData.domain],
             ['shopify_domain', sessionData.myshopify_domain],
@@ -29,7 +31,6 @@ export const CrispChat = ({ CRISP_WEBSITE_ID, sessionData }) => {
       ])
       window.CRISP_WEBSITE_ID = CRISP_WEBSITE_ID
       window.CRISP_TOKEN_ID = sessionData.myshopify_domain
-
       ;(() => {
         var d = document
         var s = d.createElement('script')
@@ -48,4 +49,15 @@ export const CrispChat = ({ CRISP_WEBSITE_ID, sessionData }) => {
       </React.Suspense>
     </div>
   )
+}
+
+export const triggerEvent = (event) => {
+  try {
+    window.$crisp.push(['set', 'session:event', [event]])
+    console.log('Crisp event triggered:', event)
+    return true
+  } catch (error) {
+    // console.error('Error triggering Crisp event:', error)
+    return false
+  }
 }

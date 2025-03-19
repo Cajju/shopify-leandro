@@ -1,7 +1,6 @@
 import { BrowserRouter } from 'react-router-dom'
 import Routes from './Routes'
-
-import { QueryProvider, PolarisProvider, Layout, Navbar } from './components'
+import { EventTrackingProvider, QueryProvider, PolarisProvider, Layout, Navbar } from './components'
 
 export default function App() {
   // Any .tsx or .jsx files in /pages will become a route
@@ -14,10 +13,12 @@ export default function App() {
     <PolarisProvider>
       <BrowserRouter>
         <QueryProvider>
-          <Navbar />
-          <Layout>
-            <Routes pages={pages} />
-          </Layout>
+          <EventTrackingProvider>
+            <Navbar />
+            <Layout>
+              <Routes pages={pages} />
+            </Layout>
+          </EventTrackingProvider>
         </QueryProvider>
       </BrowserRouter>
     </PolarisProvider>

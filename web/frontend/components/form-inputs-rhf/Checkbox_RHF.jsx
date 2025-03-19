@@ -1,6 +1,14 @@
 import { Checkbox } from '@shopify/polaris'
 import { Controller } from 'react-hook-form'
 
+/**
+ * @type {React.FC<{
+ *   control: Control,
+ *   name: string,
+ *   defaultValue?: boolean,
+ *   ...params: React.ComponentProps<typeof Checkbox>
+ * }>}
+ */
 const Checkbox_RHF = ({ control, name, defaultValue = false, ...params }) => {
   return (
     <>

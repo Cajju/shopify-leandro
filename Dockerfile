@@ -1,11 +1,19 @@
-FROM node:20-alpine
+FROM node:20.18.1-alpine
 
-RUN echo "Docker Build Starting..."
+# Add curl for healthcheck
+RUN apk add --no-cache curl wget
+
 WORKDIR /app
 COPY . /app
-RUN chmod +x /app/build-and-serve-app.sh
+
+# Run the build and deployment script
 RUN cd /app/web/frontend && npm install
+RUN cd /app/web/widget && npm install
+RUN cd /app/web/shared && npm install
 RUN cd /app/web && npm install
+
+RUN chmod +x /app/build-and-serve-app.sh
+
 CMD ["sh", "/app/build-and-serve-app.sh"]
-EXPOSE 8081
-RUN echo "Docker Build Complete."
+
+EXPOSE 3000

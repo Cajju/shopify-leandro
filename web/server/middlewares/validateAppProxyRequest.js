@@ -1,4 +1,4 @@
-import shopify from '../utils/shopify/index.js'
+import shopify from '../../shared/utils/shopify/index.js'
 
 export default async function validateAppProxyRequest(req, res, next) {
   console.log('Received query parameters:', req.query)

@@ -9,7 +9,8 @@
   "jsxBracketSameLine": true,
   "arrowParens": "always",
   "proseWrap": "preserve",
-  "htmlWhitespaceSensitivity": "ignore",
+  "htmlWhitespaceSensitivity": "strict",
+  "keepEmptyLines": true,
   "overrides": [
     {
       "files": "*.js,*.jsx",

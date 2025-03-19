@@ -1,12 +1,16 @@
-import React, { useEffect } from 'react'
-import { Frame } from '@shopify/polaris'
-import { CrispChat } from '../CrispChat'
-import { init as AmplitudeInit, track, identify, Identify } from '@amplitude/analytics-browser'
+import { useEventTracking } from '@hooks/useEventTracking'
+import useSettings from '@rq-api/settings/useSettings'
+import useShop from '@rq-api/shop/useShop'
 import { useAppBridge } from '@shopify/app-bridge-react'
-import useShop from '../../rq-api/shop/useShop'
+import { BlockStack, Frame, Link, Spinner, Text } from '@shopify/polaris'
+import { useEffect } from 'react'
+import { CrispChat } from '../CrispChat'
+import { $Wrap } from './index.styled'
 
 export const Layout = ({ children }) => {
+  const { trackEvent, identifyUser, constants } = useEventTracking()
   const shopify = useAppBridge()
+
   const {
     data: shop,
     isLoading: isLoadingShop,
@@ -15,21 +19,20 @@ export const Layout = ({ children }) => {
     refetch: refetchShop
   } = useShop()
 
-  const AmplitudeEventsListener = () => {
-    try {
-      AmplitudeInit('624fb30d39af2b39f62049ca0a7c3d99', shop.shopInformation.myshopify_domain)
-      const identifyObj = new Identify()
-      identifyObj.set('appName', 'notify-mate')
-      identify(identifyObj)
-      // console.log("Amplitude is ready!");
-    } catch (err) {
-      console.log('[Error] Amplitude: ', err)
-    }
-  }
+  const { data: settings, isLoading: isLoadingSettings, error: errorSettings } = useSettings()
 
   useEffect(() => {
     if (isSuccessShop && shop.shopInformation) {
-      AmplitudeEventsListener()
+      identifyUser(shop?.shopInformation?.myshopify_domain, {
+        shopInformation: shop?.shopInformation
+      })
+
+      trackEvent({
+        event: constants.event.app.APP_LOADED,
+        properties: {
+          shopInformation: shop?.shopInformation
+        }
+      })
     } else if (isSuccessShop && !shop.shopInformation) {
       refetchShop()
     }
@@ -68,7 +71,12 @@ export const Layout = ({ children }) => {
   if (errorShop) {
     console.log(errorShop)
     setTimeout(() => {
-      track('Error getShop: ', errorShop)
+      trackEvent({
+        event: constants.event.page.ERROR,
+        properties: {
+          error: errorShop
+        }
+      })
       return (
         <div
           style={{
@@ -80,26 +88,67 @@ export const Layout = ({ children }) => {
           <p>
             Hi Mate, we will be right back.
             <br />
-            If you need an immidate support please contact hello@leadhive.app 🍯 (we usually respond within minutes)
+            If you need an immidate support please contact support@zynclabs.com 🍯 (we usually respond within 15
+            minutes)
           </p>
         </div>
       )
     }, 6000)
   }
 
+  const helpdeskMarkup = (
+    <>
+      {/* <div style={{ height: '100px' }}></div> */}
+      <div
+        style={{
+          marginTop: 'auto',
+          textAlign: 'center',
+          padding: '20px',
+          width: '100%',
+          flex: 'none',
+          alignSelf: 'stretch'
+        }}>
+        <Text fontWeight="regular" as="p" variant="headingSm" tone="subdued">
+          Have questions? Check out our{' '}
+          <Link monochrome url="https://zynclabs.crisp.help/en/category/boxhead-bundles-12na4wy/" target="_blank">
+            helpdesk
+          </Link>
+        </Text>
+      </div>
+    </>
+  )
+
+  const appInstallLoadingMarkup = (
+    <div style={{ textAlign: 'center', margin: 'auto' }}>
+      <BlockStack gap="200">
+        <Spinner size="large" />
+        <Text as="p" variant="headingSm" tone="subdued">
+          Loading...
+        </Text>
+      </BlockStack>
+    </div>
+  )
+
   return (
     <>
       {/* Crisp Chat */}
       {import.meta.env.PROD && isSuccessShop && shop?.shopInformation && (
         <CrispChat
-          CRISP_WEBSITE_ID="7a4a7f7c-7f45-4c64-a11b-0eb3a65ce81b"
+          APP_NAME_HANDLE={import.meta.env.VITE_CRISP_APP_NAME_HANDLE}
+          CRISP_WEBSITE_ID={import.meta.env.VITE_CRISP_WEBSITE_ID}
           sessionData={{
             ...shop?.shopInformation,
             pricingPlan: shop.pricingPlan
           }}
         />
       )}
-      <Frame>{children}</Frame>
+      <Frame>
+        <$Wrap>
+          {children}
+
+          {helpdeskMarkup}
+        </$Wrap>
+      </Frame>
     </>
   )
 }

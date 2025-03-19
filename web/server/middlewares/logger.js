@@ -1,9 +1,9 @@
 import morgan from 'morgan'
-import envVars from '../utils/config.js'
+import sharedConfig from '../../shared/utils/config.js'
 
 export default morgan('tiny', {
   skip: (req, res) =>
-    envVars.isProd &&
+    sharedConfig.env !== 'dev' &&
     res.statusCode < 400 &&
     (req.url.includes('script') || req.url.includes('settings?') || req.url == '/api/webhooks')
 })

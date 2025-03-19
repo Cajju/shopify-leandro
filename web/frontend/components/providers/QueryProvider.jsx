@@ -14,7 +14,7 @@ export function QueryProvider({ children }) {
         if (query.meta?.errorMessage) {
           toast.show(`Something went wrong: ${query.meta.errorMessage}`, { isError: true, duration: 5000 })
         } else {
-          toast.show(`Something went wrong: ${error.message}`, { isError: true, duration: 5000 })
+          toast.show(`Something went wrong: ${error?.message || 'Unknown error'}`, { isError: true, duration: 5000 })
         }
       }
     }),
@@ -23,7 +23,8 @@ export function QueryProvider({ children }) {
 
   return (
     <QueryClientProvider client={client}>
-      {children} <ReactQueryDevtools initialIsOpen={false} />
+      {children}
+      <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   )
 }

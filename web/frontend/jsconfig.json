@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@assets/*": ["./assets/*"],
+      "@assets": ["./assets"],
+      "@components/*": ["./components/*"],
+      "@utils/*": ["./utils/*"],
+      "@rq-api/*": ["./rq-api/*"],
+      "@shared/*": ["../shared/*"],
+      "@hooks/*": ["./hooks/*"],
+      "@hooks": ["./hooks"],
+      "@widget/*": ["../widget/*"]
+    }
+  }
+}

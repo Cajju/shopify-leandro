@@ -31,6 +31,7 @@
     "@vitejs/plugin-react": "4.2.1",
     "i18next": "^23.1.0",
     "i18next-resources-to-backend": "^1.1.4",
+    "posthog-js": "^1.231.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-hook-form": "^7.52.2",
@@ -39,18 +40,24 @@
     "react-router-dom": "^6.3.0",
     "rollup-plugin-visualizer": "^5.12.0",
     "sass": "^1.55.0",
-    "styled-components": "^5.3.6",
+    "styled-components": "^6.1.14",
+    "stylis": "^4.3.4",
     "use-debounce": "^8.0.4",
     "vite": "^5.4.0",
-    "vite-plugin-svgr": "^4.2.0",
+    "vite-plugin-svgr": "^4.3.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
     "@shopify/stylelint-polaris": "^12.0.0",
+    "babel-plugin-styled-components": "^2.1.4",
     "history": "^5.3.0",
     "jsdom": "^24.0.0",
     "prettier": "^3.2.5",
     "stylelint": "^15.0.0",
     "vi-fetch": "^0.6.1"
+  },
+  "optionalDependencies": {
+    "@rollup/rollup-linux-x64-gnu": "4.6.1",
+    "@rollup/rollup-linux-x64-musl": "4.9.5"
   }
 }

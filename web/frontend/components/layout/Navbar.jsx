@@ -1,16 +1,17 @@
 import { NavMenu } from '@shopify/app-bridge-react'
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router-dom'
 
 const Navbar = () => {
   const { t } = useTranslation()
   return (
     <NavMenu>
-      <a href="/" rel="home">
+      <Link to="/" rel="home">
         {t('NavigationMenu.dashboard')}
-      </a>
-      <a href="/analytics">{t('NavigationMenu.analytics')}</a>
-      <a href="/settings">{t('NavigationMenu.settings')}</a>
-      <a href="/support">{t('NavigationMenu.support')}</a>
+      </Link>
+      {/* <a href="/analytics">{t('NavigationMenu.analytics')}</a> */}
+      <Link to="/settings">{t('NavigationMenu.settings')}</Link>
+      {/* <a href="/support">{t('NavigationMenu.support')}</a> */}
     </NavMenu>
   )
 }

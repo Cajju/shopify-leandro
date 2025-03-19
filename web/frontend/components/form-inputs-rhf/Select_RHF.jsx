@@ -1,6 +1,14 @@
 import { Select } from '@shopify/polaris'
 import { Controller } from 'react-hook-form'
 
+/**
+ * @type {React.FC<{
+ *   control: Control,
+ *   name: string,
+ *   defaultValue?: string,
+ *   ...params: React.ComponentProps<typeof Select>
+ * }>}
+ */
 const Select_RHF = ({ control, name, defaultValue = '', ...params }) => {
   return (
     <>

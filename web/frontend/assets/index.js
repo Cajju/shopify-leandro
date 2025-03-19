@@ -1,3 +1,7 @@
 export { default as notFoundImage } from './empty-state.svg'
 export { default as trophyImage } from './home-trophy.png'
 export { default as EmptyState2Img } from './empty-state-2.svg'
+export { default as FixedBundle } from './fixed-bundle-2.svg?w=300&h=300&loading=eager'
+export { default as VolumeDiscount } from './volume-discount-2.svg?w=300&h=300&loading=eager'
+export { default as BoxheadLogo } from './boxhead-logo.svg'
+export { default as BoxheadIcon } from './boxhead-icon.png'

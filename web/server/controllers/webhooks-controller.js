@@ -1,34 +1,49 @@
-import envVars from '../utils/config.js'
-const { isProd } = envVars
-import { Settings, Shop, ShopInstall, Statistics } from '../models/index.js'
-import { revokeSenderSignaturePostmark } from '../utils/sendEmailPostmarkapp.js'
-import { reportEvent } from '../utils/amplitude.js'
-import { getPlan, calculateRemainDays } from '../utils/shopify/ensure-billing.js'
-import { sendPushNotification } from '../utils/push-notification.js'
-import { createAppDataMetafield, fetchAppInstallationMetafield } from '../services/metafield-service.js'
-import getSession from '../utils/shopify/get-session.js'
+import { Settings, Shop, ShopInstall, Statistics } from '../../shared/models/index.js'
+import PostmarkEmailService from '../../shared/utils/sendEmailPostmarkapp.js'
+import { reportEvent } from '../../shared/utils/report-events/index.js'
+import { getPlan, calculateRemainDays } from '../../shared/utils/shopify/ensure-billing.js'
+import { sendPushNotification } from '../../shared/push-notification.js'
+import { fetchAppInstallationMetafield, setAppDataMetafield } from '../services/metafield-service.js'
+import getSession from '../../shared/utils/get-session.js'
 import { BUNDLE_TYPES } from '../../shared/utils/bundles/bundles-constants.js'
+import { constants } from '../../shared/utils/report-events/constants.js'
+import sharedConfig from '../../shared/utils/config.js'
 
 export const appUninstall = async (shopOrigin, body) => {
   try {
     const shop = await Shop.findOne({ shopify_domain: shopOrigin })
+    const timeUsed = Date.now() - shop.createdAt
+    reportEvent(shopOrigin, constants.event.app.APP_UNINSTALLED, { timeUsed, installDate: shop.createdAt })
+    const postmarkEmailService = new PostmarkEmailService(sharedConfig.postmark)
+    await postmarkEmailService.sendEmailWithTemplate({
+      To: shop?.shopInformation?.email,
+      TemplateAlias: 'boxhead-bundles--app-uninstalled',
+      TemplateModel: {
+        userName: shop?.shopInformation?.shop_owner,
+        reinstall_url: `https://apps.shopify.com/boxhead-bundles`
+      }
+    })
+    // await sendTelegramNotification({
+    //   severity: 'info',
+    //   title: 'App Uninstall',
+    //   shop: shopOrigin,
+    //   event: constants.event.app.APP_UNINSTALLED
+    // })
 
     await ShopInstall.updateOne({ shopify_domain: shopOrigin }, { $set: { cancelledAt: new Date() } })
 
-    console.debug(`❌ deleting shop: ${shopOrigin}`)
+    // console.debug(`❌ deleting shop: ${shopOrigin}`)
     await Shop.deleteOne({
       shopify_domain: shopOrigin
     })
-    console.debug(`❌ deleting settings for shop: ${shopOrigin}`)
+    // console.debug(`❌ deleting settings for shop: ${shopOrigin}`)
 
     await Settings.deleteOne({ shopify_domain: shopOrigin })
-    console.debug(`🙌 succesfuly uninstalled notify mate app for ${shopOrigin}}`)
 
     await Statistics.deleteMany({ shopId: shop._id })
-    console.debug(`🙌 succesfuly deleted stats for ${shopOrigin}`)
+    // console.debug(`🙌 succesfuly deleted stats for ${shopOrigin}`)
 
-    await Notify.deleteMany({ shop_id: shop._id })
-    console.debug(`🙌 succesfully deleted notifications for ${shopOrigin}`)
+    console.debug(`🙌 succesfuly uninstalled app for ${shopOrigin}}`)
 
     // Trim trial days
     const remainDays = await calculateRemainDays(shopOrigin)
@@ -36,13 +51,11 @@ export const appUninstall = async (shopOrigin, body) => {
       { shopify_domain: shopOrigin },
       { $set: { cancelledAt: new Date(), trialDays: remainDays } }
     )
-
-    reportEvent(shopOrigin, 'uninstall')
   } catch (error) {
     console.debug(`Faced an error when uninstalling app from: ${shopOrigin}, error: ${error}`)
-    reportEvent(shopOrigin, 'error', {
-      value: 'uninstall',
-      message: error.message
+    reportEvent(shopOrigin, constants.event.app.SERVER_ERROR, {
+      resource: constants.event.app.APP_UNINSTALLED,
+      error: error.message
     })
   }
 }
@@ -55,7 +68,7 @@ export const shopUpdate = async (shopOrigin, body) => {
     if (shopOrigin && newShopInformation) {
       shop = await Shop.findOne({ shopify_domain: shopOrigin })
       if (!shop) {
-        reportEvent(shopOrigin, 'error', {
+        reportEvent(shopOrigin, constants.event.app.SERVER_ERROR, {
           value: 'shop_not_found_process_update_shop'
         })
         return
@@ -194,6 +207,13 @@ export const shopUpdate = async (shopOrigin, body) => {
         }
       }
 
+      // Update shopify_domain in settings
+      const oldShopDomain = shop.shopInformation?.myshopify_domain
+      const newShopDomain = newShopInformation.myshopify_domain
+      if (oldShopDomain !== newShopDomain) {
+        await Settings.updateOne({ shopify_domain: oldShopDomain }, { $set: { shopify_domain: newShopDomain } })
+      }
+
       shop.shopInformation = newShopInformation
       let savedShop = await shop.save()
 
@@ -203,7 +223,7 @@ export const shopUpdate = async (shopOrigin, body) => {
     }
   } catch (error) {
     console.debug(`Faced an error when updating shop info for: ${shopOrigin}, error: ${error}`)
-    reportEvent(shop, 'error', {
+    reportEvent(shopOrigin, constants.event.app.SERVER_ERROR, {
       value: 'processShopUpdate',
       message: error.message
     })
@@ -235,18 +255,20 @@ export const subscriptionUpdate = async (shopOrigin, body) => {
 
     //send push notification
     const plan = getPlan(chargeName)
-    if (isProd) {
+    if (sharedConfig.env !== 'dev') {
       const title = '[Mate] App install'
       const message = `Plan: ${chargeName}, $${plan.price}`
       const link = `https://${shopOrigin}`
       await sendPushNotification(title, message, link)
-      reportEvent(shopOrigin, `Change plan: ${chargeName}`, {
+      reportEvent(shopOrigin, constants.event.plans.CHANGE_PRICING_PLAN, {
         plan: chargeName
       })
     }
   } catch (e) {
     console.log(e)
-    reportEvent(shopOrigin, 'Failed to update pricing plan')
+    reportEvent(shopOrigin, constants.event.app.SERVER_ERROR, {
+      message: 'Failed to update pricing plan'
+    })
   }
 }
 
@@ -266,7 +288,7 @@ export const productsUpdate = async (shopOrigin, body) => {
   //FIXME: need to make it work just small tweaks and need first to define the offers object structure
   const updatedOffers = offers.bundles.map((offer) => {
     // Skip if products doesn't exist
-    // TODO: the update is relevant only if the bundle is of type mix & match
+    // TODO: the update is relevant only if the bundle is of type fixed bundles
     if (offer.type === BUNDLE_TYPES.VOLUME || !offer.products) {
       return offer
     }
@@ -289,7 +311,7 @@ export const productsUpdate = async (shopOrigin, body) => {
     }
   })
 
-  const response = await createAppDataMetafield(session, {
+  const response = await setAppDataMetafield(session, {
     namespace: 'bundles',
     key: 'offers',
     type: 'json',
