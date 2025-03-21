@@ -1,22 +1,37 @@
 version: '3.8'
 
 services:
-  mongo:
+  mongoose-db:
     image: mongo:latest
-    container_name: mongo
-    restart: unless-stopped
+    container_name: mongoose-db
     ports:
       - "27017:27017"
-    volumes:
-      - ./data:/data/db
     environment:
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: secret
+      - MONGO_DATA_DIR=/data/db
+      - MONGO_LOG_DIR=/dev/null
+    volumes:
+      - ./mongodb_data:/data/db
     networks:
-      - mongo-network
-  shopify:
-    image: shopify-app-leandro-ramalho:latest
+      - my_network
+
+  rabbitmq:
+    image: rabbitmq:3.8-management-alpine
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"  
+    volumes:
+      - ./rabbitmq_data:/var/lib/rabbitmq/mnesia"
+    environment:
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=admin
+    networks:
+      - my_network
+
+volumes:
+  mongodb_data:
+  rabbitmq_data:
 
 networks:
-  mongo-network:
+  my_network:
     driver: bridge

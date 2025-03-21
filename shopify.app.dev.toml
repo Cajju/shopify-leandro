@@ -1,21 +1,21 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
-client_id = "Teste"
-application_url = "https://accessed-saints-chosen-donations.trycloudflare.com"
+client_id = "a653bcfd21b56a313a4a027378c3e8d8"
+application_url = "https://purchases-cook-lb-mouth.trycloudflare.com"
 embedded = true
-name = "[DEV-<Yourname>] Boilerplate app"
-handle = "dev-<yourname>-boilerplate-app"
+name = "[DEV-Leandro] Boilerplate app"
+handle = "dev-leandro-boilerplate-app"
 
 [build]
 automatically_update_urls_on_dev = true
-dev_store_url = "<your-dev-store-url>"
+dev_store_url = "loja-leandristica.myshopify.com"
 include_config_on_deploy = true
 
 [webhooks]
 api_version = "2025-04"
 
   [[webhooks.subscriptions]]
-  topics = ["app/uninstalled","shop/update"]
+  topics = [ "app/uninstalled", "shop/update" ]
   uri = "/api/webhooks"
   compliance_topics = [ "customers/data_request", "customers/redact", "shop/redact" ]
 
@@ -29,13 +29,13 @@ scopes = ""
 
 [auth]
 redirect_urls = [
-  "https://accessed-saints-chosen-donations.trycloudflare.com/auth/callback",
-  "https://accessed-saints-chosen-donations.trycloudflare.com/auth/shopify/callback",
-  "https://accessed-saints-chosen-donations.trycloudflare.com/api/auth/callback"
+  "https://purchases-cook-lb-mouth.trycloudflare.com/auth/callback",
+  "https://purchases-cook-lb-mouth.trycloudflare.com/auth/shopify/callback",
+  "https://purchases-cook-lb-mouth.trycloudflare.com/api/auth/callback"
 ]
 
 [app_proxy]
-url = "https://accessed-saints-chosen-donations.trycloudflare.com"
+url = "https://purchases-cook-lb-mouth.trycloudflare.com"
 subpath = "boilerplate-app"
 prefix = "apps"
 

@@ -1,0 +1,29 @@
+
+
+
+SHOPIFY:
+  Utiliza poetry para lidar com configurações
+  utilize o cliente para escolher a configuração
+  .toml
+
+  
+  CONFIGURAÇÃO:
+    client_id: HASH Pré cadastrado no PARTNERS DASHBOARD
+
+
+  Uso de um servidor backend node
+  Front end em react
+
+  Para rodar a aplicação você utiliza o npm
+  npm install todas as dependencias
+  npm run <perfil>
+
+  Por algum motivo ele tentou conectar com o dashboard dentro shopify.
+  Não encontrou uma loja com o dominio localhost  
+  Criei uma loja dentro dashboard e ele criou um dominio,
+  vou utilizar esse dominio na configuração
+
+
+  UTILIZE UMA LOJA DO DASHBOARD DE DESENVOLVIMENTO (NAO TRANSFERIVEL)
+
+  DEPOIS USE O MONGODB PARA CONFIGURAÇÃO
